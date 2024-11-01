@@ -1,5 +1,3 @@
-# .github/workflows/build_and_release.yml
-
 name: Build and Release Executables
 
 on:
@@ -7,9 +5,12 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write  # Allows creating releases and uploading assets
+
 jobs:
   build:
-    name: Build and Release
+    name: Build Executables
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -26,49 +27,48 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pyinstaller PyQt6 pygame pillow
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+          if [ "${{ runner.os }}" == "Linux" ]; then
             sudo apt-get update
             sudo apt-get install -y libegl1-mesa libfontconfig1 libxkbcommon-x11-0
           fi
 
       - name: Generate Icons
-        run: |
-          python compiler.py --generate-icon
+        run: python compiler.py --generate-icon
 
       - name: Build Executable
         run: |
-          if [ "${{ runner.os }}" == "Windows" ]; then
+          if [ "${{ runner.os }}" == 'Windows' ]; then
             pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.ico --add-data "assets;assets" main.py
-          elif [ "${{ runner.os }}" == "macOS" ]; then
+          elif [ "${{ runner.os }}" == 'macOS' ]; then
             pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.icns --add-data "assets:assets" main.py
           else:
             pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.png --add-data "assets:assets" main.py
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: RainSound-${{ runner.os }}
+          name: RainSound-${{ matrix.os }}
           path: |
             dist/RainSound${{ runner.os == 'Windows' && '.exe' || '' }}
 
-      - name: Create Release
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          path: artifacts
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1.11.0
+        with:
+          tag: ${{ github.ref }}
+          name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url || github.event.release.upload_url }}
-          asset_path: dist/RainSound${{ runner.os == 'Windows' && '.exe' || '' }}
-          asset_name: RainSound-${{ runner.os }}${{ runner.os == 'Windows' && '.exe' || '' }}
-          asset_content_type: application/octet-stream
+          artifacts: artifacts/**/*
