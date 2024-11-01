@@ -43,7 +43,10 @@ def generate_icon():
             scaled_img = img.resize((retina_size, retina_size), Image.LANCZOS)
             scaled_img.save(os.path.join(iconset_dir, f'icon_{size}x{size}@2x.png'))
         # Use iconutil to create .icns
-        subprocess.run(['iconutil', '-c', 'icns', iconset_dir, '-o', icon_file])
+        result = subprocess.run(['iconutil', '-c', 'icns', iconset_dir, '-o', icon_file], check=True)
+        if result.returncode != 0:
+            print("Error generating .icns file")
+            sys.exit(1)
         shutil.rmtree(iconset_dir)
         print(f"Generated ICNS icon at {icon_file}")
 

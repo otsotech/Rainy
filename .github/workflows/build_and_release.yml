@@ -71,7 +71,7 @@ jobs:
           path: artifacts
 
       - name: Create Release
-        uses: ncipollo/release-action@v1.11.5
+        uses: ncipollo/release-action@v1
         with:
           tag: ${{ github.ref }}
           name: Release ${{ github.ref }}
