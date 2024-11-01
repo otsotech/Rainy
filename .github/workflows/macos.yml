@@ -1,0 +1,35 @@
+name: Build macOS Executable
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        pip install pyinstaller PyQt6 pygame pillow
+
+    - name: Generate Icons
+      run: |
+        pip install pillow
+        python scripts/generate_icons.py macos
+
+    - name: Build Executable
+      run: |
+        pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.icns --add-data "assets:assets" main.py
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: RainSound-macOS
+        path: dist/RainSound

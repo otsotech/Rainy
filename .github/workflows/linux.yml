@@ -1,0 +1,37 @@
+name: Build Linux Executable
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libegl1-mesa libfontconfig1
+        pip install pyinstaller PyQt6 pygame pillow
+
+    - name: Generate Icons
+      run: |
+        pip install pillow
+        python scripts/generate_icons.py linux
+
+    - name: Build Executable
+      run: |
+        pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.png --add-data "assets:assets" main.py
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: RainSound-Linux
+        path: dist/RainSound
