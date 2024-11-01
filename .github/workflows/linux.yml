@@ -1,37 +1,49 @@
-name: Build Linux Executable
+# .github/workflows/linux.yml
+
+name: Build and Release Linux Executable
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - 'v*.*.*'
 
 jobs:
-  build-linux:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libegl1-mesa libfontconfig1
-        pip install pyinstaller PyQt6 pygame pillow
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1-mesa libfontconfig1 libxkbcommon-x11-0
+          pip install pyinstaller PyQt6 pygame pillow
 
-    - name: Generate Icons
-      run: |
-        pip install pillow
-        python scripts/generate_icons.py linux
+      - name: Generate Icons
+        run: |
+          python compiler.py --generate-icon
 
-    - name: Build Executable
-      run: |
-        pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.png --add-data "assets:assets" main.py
+      - name: Build Executable
+        run: |
+          pyinstaller --onefile --windowed --name Rainy --icon assets/icons/app.png --add-data "assets:assets" main.py
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: RainSound-Linux
-        path: dist/RainSound
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Rainy-Linux
+          path: dist/Rainy
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: dist/Rainy
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false

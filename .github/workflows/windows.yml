@@ -1,35 +1,47 @@
-name: Build Windows Executable
+# .github/workflows/windows.yml
+
+name: Build and Release Windows Executable
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
+
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Install Dependencies
-      run: |
-        pip install pyinstaller PyQt6 pygame pillow
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller PyQt6 pygame pillow
 
-    - name: Generate Icons
-      run: |
-        pip install pillow
-        python scripts/generate_icons.py windows
+      - name: Generate Icons
+        run: |
+          python compiler.py --generate-icon
 
-    - name: Build Executable
-      run: |
-        pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.ico --add-data "assets;assets" main.py
+      - name: Build Executable
+        run: |
+          pyinstaller --onefile --windowed --name Rainy --icon assets/icons/app.ico --add-data "assets;assets" main.py
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: RainSound-Windows
-        path: dist/RainSound.exe
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Rainy-Windows
+          path: dist/Rainy.exe
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: dist/Rainy.exe
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false

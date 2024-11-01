@@ -1,35 +1,47 @@
-name: Build macOS Executable
+# .github/workflows/macos.yml
+
+name: Build and Release macOS Executable
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - 'v*.*.*'
 
 jobs:
-  build-macos:
+  build:
     runs-on: macos-latest
+
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Install Dependencies
-      run: |
-        pip install pyinstaller PyQt6 pygame pillow
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller PyQt6 pygame pillow
 
-    - name: Generate Icons
-      run: |
-        pip install pillow
-        python scripts/generate_icons.py macos
+      - name: Generate Icons
+        run: |
+          python compiler.py --generate-icon
 
-    - name: Build Executable
-      run: |
-        pyinstaller --onefile --windowed --name RainSound --icon assets/icons/app.icns --add-data "assets:assets" main.py
+      - name: Build Executable
+        run: |
+          pyinstaller --onefile --windowed --name Rainy --icon assets/icons/app.icns --add-data "assets:assets" main.py
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: RainSound-macOS
-        path: dist/RainSound
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Rainy-macOS
+          path: dist/Rainy
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: dist/Rainy
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false

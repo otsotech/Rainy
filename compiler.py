@@ -1,15 +1,18 @@
+# compiler.py
+
 import os
 import sys
 import subprocess
 import shutil
 import platform
 from PIL import Image
+import argparse
 
 def resource_path(relative_path):
     base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-def generate_icon(system_name):
+def generate_icon():
     icons_dir = resource_path(os.path.join('assets', 'icons'))
     icon_png = os.path.join(icons_dir, 'app.png')  # 512x512 PNG file
 
@@ -17,14 +20,16 @@ def generate_icon(system_name):
         print(f"Icon PNG file not found at {icon_png}")
         sys.exit(1)
 
-    if system_name == 'Windows':
+    system = platform.system()
+
+    if system == 'Windows':
         icon_file = os.path.join(icons_dir, 'app.ico')
         img = Image.open(icon_png)
         icon_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
         img.save(icon_file, sizes=icon_sizes)
-        return icon_file
+        print(f"Generated ICO icon at {icon_file}")
 
-    elif system_name == 'Darwin':
+    elif system == 'Darwin':
         icon_file = os.path.join(icons_dir, 'app.icns')
         img = Image.open(icon_png)
         iconset_dir = os.path.join(icons_dir, 'AppIcon.iconset')
@@ -40,54 +45,20 @@ def generate_icon(system_name):
         # Use iconutil to create .icns
         subprocess.run(['iconutil', '-c', 'icns', iconset_dir, '-o', icon_file])
         shutil.rmtree(iconset_dir)
-        return icon_file
+        print(f"Generated ICNS icon at {icon_file}")
 
     else:  # Linux or other
-        return icon_png
+        print(f"No icon conversion needed for {system}")
 
-def compile_app():
-    try:
-        import PyInstaller
-    except ImportError:
-        print("Please install PyInstaller with 'pip install pyinstaller'")
-        sys.exit(1)
+def main():
+    parser = argparse.ArgumentParser(description='Compiler script for Rainy app.')
+    parser.add_argument('--generate-icon', action='store_true', help='Generate icons for the current platform.')
+    args = parser.parse_args()
 
-    system = platform.system()
-    if system == 'Windows':
-        system_name = 'Windows'
-    elif system == 'Darwin':
-        system_name = 'macOS'
+    if args.generate_icon:
+        generate_icon()
     else:
-        system_name = 'Linux'
-
-    # Generate icon
-    icon_file = generate_icon(system)
-
-    # Clean previous builds
-    if os.path.exists('build'):
-        shutil.rmtree('build')
-    if os.path.exists('dist'):
-        shutil.rmtree('dist')
-
-    # Build command
-    if system_name == 'Windows':
-        add_data_option = '--add-data assets;assets'
-    else:
-        add_data_option = '--add-data assets:assets'
-
-    cmd = [
-        'pyinstaller',
-        '--clean',
-        '--windowed',
-        '--onefile',
-        '--name', 'RainSound',
-        '--icon', icon_file,
-        add_data_option,
-        'main.py'
-    ]
-
-    # Run PyInstaller
-    subprocess.run(cmd)
+        print("No action specified. Use --generate-icon to generate icons.")
 
 if __name__ == '__main__':
-    compile_app()
+    main()
